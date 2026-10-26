@@ -59,18 +59,7 @@
     </div>
 
     <div class="subscribe-from">
-      <h2 class="caption caption--h2">Подписывайтесь на нашу
-        рассылку</h2>
-
-      <form class="subscribe-from__form">
-        <input type="email" placeholder="Ваша почта" />
-        <button type="submit" class="btn" disabled>Подписаться</button>
-      </form>
-
-      <div class="block-more-text"> Нажимая на кнопку, вы соглашаетесь с
-        <a href="/email-consent">Политикой конфиденциальности</a>
-      </div>
-
+      <SubscribeForm />
     </div>
 
     <div class="project-publication" :class="{ opened: isOpenPublic }">
@@ -250,7 +239,7 @@ const additionalMainLinks = computed(
     grid-column: 2/3;
     grid-row: 2/3;
 
-    .caption {
+    :deep(.caption) {
       max-width: 400px;
     }
 

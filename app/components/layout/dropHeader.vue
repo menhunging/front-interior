@@ -93,18 +93,7 @@ const additionalMainLinks = computed(
         <span class="not-project">Анкета для публикации проекта доступна только в десктопной версии сайта</span>
 
         <div class="subscribe-from">
-            <h2 class="caption caption--h2">Подписывайтесь на нашу
-                рассылку</h2>
-
-            <form class="subscribe-from__form">
-                <input type="email" placeholder="Ваша почта" />
-                <button type="submit" class="btn" disabled>Подписаться</button>
-            </form>
-
-            <div class="block-more-text"> Нажимая на кнопку, вы соглашаетесь с
-                <a href="/email-consent">Политикой конфиденциальности</a>
-            </div>
-
+            <SubscribeForm />
         </div>
     </div>
 </template>
