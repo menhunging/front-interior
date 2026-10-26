@@ -1,8 +1,8 @@
 <template>
   <section class="print-journal">
     <div class="print-journal__left">
-      <div class="print-journal__caption">вы ждали — <br>мы сделали</div>
-      <div class="print-journal__subcaption">оформите подписку <br>на ваш любимый журнал</div>
+      <div class="print-journal__caption" v-html="printJournal.caption"></div>
+      <div class="print-journal__subcaption" v-html="printJournal.subcaption"></div>
     </div>
     <div class="print-journal__right">
       <div v-for="item in journalCards" :key="item.image" class="print-journal__subscribe">
@@ -42,30 +42,16 @@ const journalNumbers = computed(
   () => (appConfig.journalNumbers ?? []) as JournalNumberItem[],
 );
 
-const newJournalNumber = computed(() => appConfig.newJournalNumber);
+const printJournal = computed(() => appConfig.printJournal);
 
-const journalCards = computed<JournalCard[]>(() => {
-  const firstImage = journalNumbers.value[0]?.image ?? "";
-  const secondImage = journalNumbers.value[1]?.image ?? "";
-
-  return [
-    {
-      image: firstImage,
-      title: newJournalNumber.value?.title ?? "",
-      description: newJournalNumber.value?.description ?? "",
-      buttonText: "Где купить журнал",
-      buttonLink: "#", // TODO надо поставить будет ссылку куда переадресуем
-    },
-    {
-      image: secondImage,
-      title: "Подписка на год",
-      description:
-        "Доставка по Москве осуществляется курьером в почтовый ящик или офис. В регионы РФ доставка осуществляется «Почтой России» в почтовый ящик/почтовое отделение",
-      buttonText: "Подписаться",
-      buttonLink: "https://www.ural-press.ru/contact/",
-    },
-  ].filter((item) => Boolean(item.image));
-});
+const journalCards = computed<JournalCard[]>(() =>
+  (printJournal.value?.cards ?? [])
+    .map((card, index) => ({
+      ...card,
+      image: journalNumbers.value[index]?.image ?? "",
+    }))
+    .filter((item) => Boolean(item.image)),
+);
 </script>
 
 <style lang="scss" scoped>

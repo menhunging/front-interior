@@ -1,8 +1,12 @@
+const journalIssuePath =
+  "/design/14222-novii-nomer-zhurnala-interierdizain-v-prodazhe.html";
+
 const appConf = {
   apiHost: "https://api.interior.ru",
   host: "https://interior.ru",
   hostCanonical: "https://www.interior.ru",
-  title: "Экспертное медиа о дизайне, архитектуре и искусстве | INTERIOR+DESIGN",
+  title:
+    "Экспертное медиа о дизайне, архитектуре и искусстве | INTERIOR+DESIGN",
   description:
     "Ведущее российское издание о дизайне интерьера, архитектуре и искусстве.  Ежедневная хроника индустрии, интервью с лидерами мнений, экспертные обзоры, главные тренды, проекты квартир и загородных домов на INTERIOR+DESIGN",
   ogImage: "/pictures/share.png",
@@ -55,7 +59,7 @@ const appConf = {
       id: 9,
       title: "Журнал",
       slug: "design",
-      uri: "design",
+      uri: journalIssuePath.slice(1),
       parent: null,
     },
   ],
@@ -120,10 +124,25 @@ const appConf = {
       active: true,
     },
   ],
-  newJournalNumber: {
-    title: "Новый номер!",
-    description:
-      "Новый выпуск INTERIOR+DESIGN № 4-5/2026 посвящен дизайну. Джордж Ябу и Гленн Пушельберг — об историях и эмоциях в объектах. Милан 2026 — превью и открытия. Владимир Пирожков — про креатив и искусственный интеллект. Новые авторы, создающие предметы с характером. SPECIAL 3.0. Несерьезный разговор о серьезном дизайне",
+  printJournal: {
+    caption: "вы ждали — <br>мы сделали",
+    subcaption: "оформите подписку <br>на ваш любимый журнал",
+    cards: [
+      {
+        title: "Новый номер!",
+        description:
+          "Новый выпуск INTERIOR+DESIGN № 4-5/2026 посвящен дизайну. Джордж Ябу и Гленн Пушельберг — об историях и эмоциях в объектах. Милан 2026 — превью и открытия. Владимир Пирожков — про креатив и искусственный интеллект. Новые авторы, создающие предметы с характером. SPECIAL 3.0. Несерьезный разговор о серьезном дизайне",
+        buttonText: "Где купить журнал",
+        buttonLink: journalIssuePath,
+      },
+      {
+        title: "Подписка на год",
+        description:
+          "Доставка по Москве осуществляется курьером в почтовый ящик или офис. В регионы РФ доставка осуществляется «Почтой России» в почтовый ящик/почтовое отделение",
+        buttonText: "Подписаться",
+        buttonLink: "https://www.ural-press.ru/contact/",
+      },
+    ],
   },
   journalNumbers: [
     {

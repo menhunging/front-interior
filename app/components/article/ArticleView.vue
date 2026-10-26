@@ -74,7 +74,7 @@
 
     <ArticleRelated v-if="article.related?.length" :articles="article.related" />
 
-    <ArticleNext v-if="article.next" :article="article.next" @click="emit('next')" />
+    <ArticleNext v-if="nextArticle" :article="nextArticle" @click="emit('next')" />
   </div>
 </template>
 
@@ -84,12 +84,14 @@ import Swiper from "swiper";
 import { Navigation, Pagination } from "swiper/modules";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
-import type { Article } from "../../api/articles";
+import type { Article, ArticlePreview } from "../../api/articles";
 import type { ArticleEditor } from "../../utils/article";
 
 const props = defineProps<{
   article: Article;
   isFirst: boolean;
+  // null — лента кончилась, undefined — брать article.next
+  nextArticle?: ArticlePreview | null;
 }>();
 
 const emit = defineEmits<{
@@ -99,6 +101,10 @@ const emit = defineEmits<{
 
 const appConfig = useAppConfig();
 const isMobile = useIsMobile();
+
+const nextArticle = computed(() =>
+  props.nextArticle === undefined ? props.article.next : props.nextArticle,
+);
 
 const content = computed(() => prepareArticleContent(props.article.content, isMobile));
 const editor = computed(() => getArticleEditor(content.value));

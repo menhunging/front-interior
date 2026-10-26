@@ -2,8 +2,8 @@
   <div class="article-page">
     <div v-for="(article, index) in articles" :key="article.id" :ref="(el) => setArticleRef(el, index)"
       class="article-page__item" :data-index="index">
-      <ArticleView :article="article" :is-first="index === 0" @next="goToNext(index)"
-        @mounted="onArticleMounted" />
+      <ArticleView :article="article" :is-first="index === 0" :next-article="nextPreview(index)"
+        @next="goToNext(index)" @mounted="onArticleMounted" />
     </div>
 
     <div ref="sentinelRef" class="article-page__sentinel" />
@@ -13,7 +13,8 @@
 
 <script lang="ts" setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type ComponentPublicInstance } from "vue";
-import { useArticlesApi, type Article } from "../../api/articles";
+import { useArticlesApi, type Article, type ArticlePreview } from "../../api/articles";
+import { useCategoriesApi } from "../../api/categories";
 import type { ArticleEditor } from "../../utils/article";
 
 const route = useRoute();
@@ -22,7 +23,10 @@ const device = useIsMobile() ? "mobile" : "desktop";
 const articleId = String(route.params.id);
 
 const { getArticle, incrementArticleViews } = useArticlesApi();
+const { getSection, getSectionArticles } = useCategoriesApi();
 const { enableVerstka } = useContentEditors();
+
+const JOURNAL_TAG = "zhurnal";
 
 const settlementUrl = (uri: string) => `${appConfig.hostCanonical}${uri}`;
 
@@ -43,17 +47,60 @@ const active = computed(() => articles.value[activeIndex.value] ?? articles.valu
 // бэк может отдать по id другую (скрытую) статью — тогда адрес в строке не трогаем
 const isSecret = first.value.id !== Number(articleId);
 
+// у выпусков тег «журнал», а поле next ведёт в общую ленту дизайна
+const isJournalArticle = Boolean(first.value.tags?.some((tag) => tag.slug === JOURNAL_TAG));
+
+const { data: journalFeed } = await useAsyncData(
+  () => `journal-feed-${first.value.id}`,
+  async (): Promise<ArticlePreview[] | null> => {
+    if (!isJournalArticle) return null;
+
+    const section = await getSection(JOURNAL_TAG);
+    if (!section) return [];
+
+    const pageSize = 50;
+    const items: ArticlePreview[] = [];
+    let offset = 0;
+    let total = Number.POSITIVE_INFINITY;
+
+    while (offset < total) {
+      const page = await getSectionArticles(section, pageSize, offset);
+      total = page.total;
+      items.push(...(page.items as ArticlePreview[]));
+      if (!page.items.length || page.items.length < pageSize) break;
+      offset += pageSize;
+    }
+
+    return items.filter((item) => item.id !== first.value!.id);
+  },
+);
+
+const nextPreview = (index: number) => {
+  if (!journalFeed.value) return undefined;
+  return journalFeed.value[index] ?? null;
+};
+
+const canLoadMore = () => {
+  if (journalFeed.value) return articles.value.length - 1 < journalFeed.value.length;
+  return Boolean(articles.value[articles.value.length - 1]?.next);
+};
+
 const loadNext = async () => {
-  const next = articles.value[articles.value.length - 1]?.next;
-  if (!next || isLoading.value || articles.value.some((item) => item.id === next.id)) return;
+  if (isLoading.value) return;
+
+  const next = journalFeed.value
+    ? journalFeed.value[articles.value.length - 1]
+    : articles.value[articles.value.length - 1]?.next;
+  if (!next || articles.value.some((item) => item.id === next.id)) return;
 
   isLoading.value = true;
   try {
-    const nextUrl = settlementUrl(getArticleUri(next) || route.path);
+    const nextPath = getArticleUri(next) || route.path;
+    const nextUrl = settlementUrl(nextPath);
     const article = await getArticle(next.id, device, nextUrl);
-    if (article) {
+    if (article && !articles.value.some((item) => item.id === article.id)) {
       articles.value.push(article);
-      incrementArticleViews(article.id, nextUrl);
+      incrementArticleViews(article.id, settlementUrl(getArticleUri(article) || nextPath));
     }
   } catch (error) {
     console.error("next article load failed", error);
@@ -115,7 +162,7 @@ onMounted(() => {
       if (!entry?.isIntersecting) return;
       await loadNext();
       await nextTick();
-      if (articles.value[articles.value.length - 1]?.next) recheckSentinel();
+      if (canLoadMore()) recheckSentinel();
     },
     { rootMargin: "0px 0px 150% 0px" },
   );

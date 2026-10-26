@@ -72,37 +72,44 @@
       <div class="project-publication__content">
         <span class="caption">Анкета для публикации проекта</span>
 
-        <div class="project-publication__form">
+        <div v-if="sent" class="project-publication-success">
+          <span class="project-publication-success__title">
+            Спасибо! Редакция рассмотрит проект и обязательно свяжется с вами. INTERIOR.RU
+          </span>
+          <p>Срок рассмотрения: 2–3 недели</p>
+        </div>
+
+        <form v-else class="project-publication__form" @submit.prevent="onSubmit">
           <span class="project-publication__title">контакты</span>
 
           <div class="input-list">
             <div class="input-item">
-              <label for="">Фамилия и имя автора / название бюро <span class="imp">*</span> </label>
-              <input type="text">
+              <label for="author_name">Фамилия и имя автора / название бюро <span class="imp">*</span> </label>
+              <input id="author_name" v-model="form.author_name" type="text" name="author_name" required>
             </div>
             <div class="input-item">
-              <label for="">Ссылка на портрет автора <span class="imp">*</span> </label>
-              <input type="text">
+              <label for="author_portrait_link">Ссылка на портрет автора <span class="imp">*</span> </label>
+              <input id="author_portrait_link" v-model="form.author_portrait_link" type="text" name="author_portrait_link" required>
             </div>
             <div class="input-item">
-              <label for="">Почта <span class="imp">*</span> </label>
-              <input type="email">
+              <label for="author_email">Почта <span class="imp">*</span> </label>
+              <input id="author_email" v-model="form.author_email" type="email" name="author_email" required>
             </div>
             <div class="input-item">
-              <label for="">Телефон</label>
-              <input type="text">
+              <label for="author_phone">Телефон</label>
+              <input id="author_phone" v-model="form.author_phone" type="tel" name="author_phone">
             </div>
             <div class="input-item">
-              <label for="">Страницы автора в социальных сетях</label>
-              <input type="text">
+              <label for="author_facebook">Страницы автора в социальных сетях</label>
+              <input id="author_facebook" v-model="form.author_facebook" type="text" name="author_facebook">
             </div>
             <div class="input-item">
-              <label for="">Сайт</label>
-              <input type="text">
+              <label for="author_site">Сайт</label>
+              <input id="author_site" v-model="form.author_site" type="text" name="author_site">
             </div>
             <div class="input-item">
-              <label for="">Город <span class="imp">*</span> </label>
-              <input type="text">
+              <label for="author_city">Город <span class="imp">*</span> </label>
+              <input id="author_city" v-model="form.author_city" type="text" name="author_city" required>
             </div>
           </div>
 
@@ -110,52 +117,57 @@
 
           <div class="input-list">
             <div class="input-item input-item--full">
-              <label for="">Описание проекта <span class="imp">*</span> </label>
-              <textarea></textarea>
+              <label for="project_description">Описание проекта <span class="imp">*</span> </label>
+              <textarea id="project_description" v-model="form.project_description" name="project_description" required></textarea>
             </div>
             <div class="input-item">
-              <label for="">Был ли где-то опубликован проект?</label>
-              <textarea></textarea>
+              <label for="project_publications">Был ли где-то опубликован проект?</label>
+              <textarea id="project_publications" v-model="form.project_publications" name="project_publications"></textarea>
             </div>
             <div class="input-item">
-              <label for="">Бренды в проекте</label>
-              <textarea></textarea>
+              <label for="project_brands">Бренды в проекте</label>
+              <textarea id="project_brands" v-model="form.project_brands" name="project_brands"></textarea>
             </div>
             <div class="input-item">
-              <label for="">Ссылка на фото проекта <span class="imp">*</span> </label>
-              <textarea></textarea>
+              <label for="project_photo_link">Ссылка на фото проекта <span class="imp">*</span> </label>
+              <textarea id="project_photo_link" v-model="form.project_photo_link" name="project_photo_link"
+                placeholder="Пожалуйста, проведите предварительный отбор фотографий. Мы принимаем только LowRes — 30 фотографий максимум"
+                required></textarea>
             </div>
             <div class="input-item">
-              <label for="">Локация проекта</label>
-              <input type="text">
+              <label for="project_location">Локация проекта</label>
+              <input id="project_location" v-model="form.project_location" type="text" name="project_location">
             </div>
             <div class="input-item">
-              <label for="">Площадь объекта, м2</label>
-              <input type="text">
+              <label for="project_object_area">Площадь объекта, м2</label>
+              <input id="project_object_area" v-model="form.project_object_area" type="text" name="project_object_area">
             </div>
             <div class="input-item">
-              <label for="">Год реализации проекта</label>
-              <input type="text">
+              <label for="project_year">Год реализации проекта <span class="imp">*</span></label>
+              <input id="project_year" v-model="form.project_year" type="number" name="project_year" required>
             </div>
             <div class="input-item">
-              <label for="">Фотограф съемки</label>
-              <input type="text">
+              <label for="project_photographer">Фотограф съемки</label>
+              <input id="project_photographer" v-model="form.project_photographer" type="text" name="project_photographer">
             </div>
             <div class="input-item">
-              <label for="">Стилист съемки</label>
-              <input type="text">
+              <label for="project_stylist">Стилист съемки</label>
+              <input id="project_stylist" v-model="form.project_stylist" type="text" name="project_stylist">
             </div>
           </div>
 
           <div class="project-publication__text">
             <p>
-              Нажимая кнопку «Отправить», вы подтверждаете, что ознакомились и принимаете условия <a
-                href="#">пользовательского соглашения</a>
+              Нажимая кнопку «Отправить», вы подтверждаете, что ознакомились и принимаете условия
+              <NuxtLink to="/litsenzionnii-dogovor-oferta.html" target="_blank">пользовательского соглашения</NuxtLink>
             </p>
           </div>
 
-          <button class="btn" type="submit">Отправить</button>
-        </div>
+          <p v-if="error" class="project-publication__error">{{ error }}</p>
+          <button class="btn" type="submit" :disabled="pending || !canSubmit">
+            {{ pending ? "Отправка…" : "Отправить" }}
+          </button>
+        </form>
       </div>
 
       <button class="btn-close" @click="handleOpenPublic"></button>
@@ -164,12 +176,74 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from "vue";
+import { computed, reactive, ref, watch } from "vue";
+import { PublishError, usePublishApi } from "../../api/publish";
 
-defineProps<{
+const props = defineProps<{
   isOpenPublic: boolean;
   handleOpenPublic: (event: MouseEvent) => void;
 }>();
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+const { submitProjectApplication } = usePublishApi();
+
+const form = reactive({
+  author_name: "",
+  author_portrait_link: "",
+  author_email: "",
+  author_phone: "",
+  author_facebook: "",
+  author_site: "",
+  author_city: "",
+  project_description: "",
+  project_publications: "",
+  project_brands: "",
+  project_photo_link: "",
+  project_location: "",
+  project_object_area: "",
+  project_year: "",
+  project_photographer: "",
+  project_stylist: "",
+});
+
+const pending = ref(false);
+const sent = ref(false);
+const error = ref("");
+
+const filled = (value: string | number) => String(value ?? "").trim();
+
+const canSubmit = computed(() =>
+  [
+    form.author_name,
+    form.author_portrait_link,
+    form.author_city,
+    form.project_description,
+    form.project_photo_link,
+    form.project_year,
+  ].every((value) => filled(value)) && EMAIL_RE.test(form.author_email.trim()),
+);
+
+watch(() => props.isOpenPublic, (open) => {
+  if (!open) {
+    sent.value = false;
+    error.value = "";
+  }
+});
+
+const onSubmit = async () => {
+  if (pending.value || !canSubmit.value) return;
+  pending.value = true;
+  error.value = "";
+  try {
+    await submitProjectApplication({ ...form });
+    sent.value = true;
+  } catch (err) {
+    error.value = err instanceof PublishError ? err.message : "Не удалось отправить анкету";
+  } finally {
+    pending.value = false;
+  }
+};
 
 type MainMenuItem = {
   id?: number;
@@ -380,6 +454,30 @@ const additionalMainLinks = computed(
     font-weight: 800;
     text-transform: uppercase;
     display: block;
+  }
+
+  .project-publication-success {
+    margin-top: 32px;
+
+    &__title {
+      display: block;
+      max-width: 660px;
+      margin-bottom: 16px;
+      font-size: 16px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+
+  .project-publication__error {
+    margin: 0 0 16px;
+    font-size: 12px;
+    line-height: 16px;
   }
 
   .project-publication__text {

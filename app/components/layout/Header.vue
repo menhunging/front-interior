@@ -39,7 +39,8 @@
     <nav class="menu">
       <ul class="menu__list">
         <li class="menu__item" v-for="item in menu" :key="item.name">
-          <NuxtLink class="menu__link" active-class="active" :to="item.link">
+          <NuxtLink class="menu__link" active-class="" exact-active-class="" :class="{ active: isMenuActive(item.link) }"
+            :to="item.link">
             {{ item.name }}
           </NuxtLink>
         </li>
@@ -71,12 +72,27 @@ defineProps<{
 // @ts-ignore Nuxt auto-import
 const appConfig = useAppConfig();
 
+// @ts-ignore Nuxt auto-import
+const route = useRoute();
+
 const menu = computed(() =>
   (appConfig.mainMenu ?? []).map((item: { uri?: string; title?: string }) => ({
     link: `/${item.uri ?? ""}`,
     name: item.title ?? "",
   })),
 );
+
+// более длинный пункт меню побеждает: «Журнал» на выпуске, «Дизайн» на остальных /design/*
+const isMenuActive = (link: string) => {
+  const path = route.path;
+  const matches = path === link || path.startsWith(`${link}/`);
+  if (!matches) return false;
+
+  return !menu.value.some((item) => {
+    if (item.link === link || !item.link.startsWith(link)) return false;
+    return path === item.link || path.startsWith(`${item.link}/`);
+  });
+};
 
 const social = computed(() =>
   (
