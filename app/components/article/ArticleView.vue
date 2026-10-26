@@ -558,7 +558,7 @@ onBeforeUnmount(() => {
         justify-content: flex-start;
       }
 
-      .swiper-wrapper > p {
+      .swiper-wrapper>p {
         display: none;
       }
 
@@ -628,7 +628,7 @@ onBeforeUnmount(() => {
         min-width: initial;
         flex-basis: initial;
 
-        &[data-col-width="8"] + [data-col-width="2"] {
+        &[data-col-width="8"]+[data-col-width="2"] {
           width: 180px;
 
           &.stk-grid-col_last {
@@ -702,13 +702,13 @@ onBeforeUnmount(() => {
       grid-template-rows: initial;
       grid-template-columns: initial;
 
-      & > :first-child {
+      &> :first-child {
         grid-column: initial;
         grid-row: initial;
       }
     }
 
-    &.stk-post > * {
+    &.stk-post>* {
       grid-column: initial;
       min-width: initial;
       max-width: initial;
@@ -720,15 +720,16 @@ onBeforeUnmount(() => {
       max-width: initial;
     }
 
-    .stk-code_keep-ratio .stk-code[style*="stk-embed-height-ratio"] > iframe {
+    .stk-code_keep-ratio .stk-code[style*="stk-embed-height-ratio"]>iframe {
       position: relative;
     }
 
     @media (max-width: 768px) {
       &.stk-post {
+
         [data-col-width="6"],
         [data-col-width="2"],
-        .stk-grid-col[data-col-width="8"] + [data-col-width="2"].stk-grid-col_last {
+        .stk-grid-col[data-col-width="8"]+[data-col-width="2"].stk-grid-col_last {
           flex-basis: auto;
           margin-left: 0;
           margin-right: 0;
@@ -771,9 +772,9 @@ onBeforeUnmount(() => {
 
   // в Safari у setka слетает grid — принудительно раскладываем блоки
   &._editor_setka &__body * :not([href], .swiper-button-prev, .swiper-button-next, .swiper, .swiper-wrapper,
-  script, iframe, .stk-gallery.stk-gallery_init, .stk-gallery_arrow, .stk-gallery_counter,
-  .stk-gallery_counter__current, .stk-gallery_counter__divider, .stk-gallery_counter__total, .stk-gallery_dots,
-  .stk-gallery_dot, .tohka, span.stk-reset, a.stk-reset, em, style, img) {
+    script, iframe, .stk-gallery.stk-gallery_init, .stk-gallery_arrow, .stk-gallery_counter,
+    .stk-gallery_counter__current, .stk-gallery_counter__divider, .stk-gallery_counter__total, .stk-gallery_dots,
+    .stk-gallery_dot, .tohka, span.stk-reset, a.stk-reset, em, style, img) {
     display: block !important;
     width: 100%;
   }
@@ -901,7 +902,7 @@ onBeforeUnmount(() => {
   &__tags-track {
     display: flex;
     width: max-content;
-    animation: marquee 60s linear infinite;
+    animation: marquee 20s linear infinite;
 
     &:hover {
       animation-play-state: paused;

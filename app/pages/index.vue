@@ -2,17 +2,34 @@
   <div>
     <section class="grettings">
 
-      <div v-if="hero" class="grettings__media">
-        <NuxtLink :to="hero.url" class="grettings__invisLink" />
+      <div v-if="slides.length" class="grettings__media">
+        <Swiper v-if="isHeroSlider" class="grettings__slider" v-bind="heroSwiperConfig">
+          <SwiperSlide v-for="(slide, index) in slides" :key="slide.id" class="grettings__slide">
+            <video v-if="isVideoUrl(slide.image)" autoplay muted loop playsinline :aria-label="slide.title">
+              <source :src="slide.image" :type="getVideoMimeType(slide.image)">
+            </video>
+            <img v-else :src="index === 0 || imagesReady ? slide.image : undefined" :alt="slide.title"
+              :title="slide.title" :fetchpriority="index === 0 ? 'high' : 'low'" decoding="async">
+            <NuxtLink :to="slide.url" class="grettings__invisLink" />
+            <NuxtLink :to="slide.url" class="grettings__link">
+              <span class="text-default">{{ slide.title }}</span>
+            </NuxtLink>
+          </SwiperSlide>
+          <div class="grettings__dots"></div>
+          <button type="button" class="grettings__prev" aria-label="Предыдущий слайд"></button>
+          <button type="button" class="grettings__next" aria-label="Следующий слайд"></button>
+        </Swiper>
 
-        <NuxtLink :to="hero.url" class="grettings__link">
-          <span class="text-default">{{ hero.title }}</span>
-        </NuxtLink>
-
-        <video v-if="isVideoUrl(hero.image)" autoplay muted loop playsinline :aria-label="hero.title">
-          <source :src="hero.image" :type="getVideoMimeType(hero.image)">
-        </video>
-        <img v-else :src="hero.image" :alt="hero.title" :title="hero.title" fetchpriority="high">
+        <template v-else>
+          <video v-if="isVideoUrl(slides[0]!.image)" autoplay muted loop playsinline :aria-label="slides[0]!.title">
+            <source :src="slides[0]!.image" :type="getVideoMimeType(slides[0]!.image)">
+          </video>
+          <img v-else :src="slides[0]!.image" :alt="slides[0]!.title" :title="slides[0]!.title" fetchpriority="high">
+          <NuxtLink :to="slides[0]!.url" class="grettings__invisLink" />
+          <NuxtLink :to="slides[0]!.url" class="grettings__link">
+            <span class="text-default">{{ slides[0]!.title }}</span>
+          </NuxtLink>
+        </template>
       </div>
 
       <div class="news">
@@ -35,8 +52,8 @@
         <SwiperSlide v-for="item in specProjects" :key="item.id">
           <NuxtLink :to="item.url" class="special-projects__invisLink">
             <picture class="picture">
-              <video v-if="item.video" autoplay muted loop playsinline preload="metadata" :poster="item.image || undefined"
-                :aria-label="item.title">
+              <video v-if="item.video" autoplay muted loop playsinline preload="metadata"
+                :poster="item.image || undefined" :aria-label="item.title">
                 <source :src="item.video" :type="getVideoMimeType(item.video)">
               </video>
               <img v-else :src="item.image" :srcset="`${item.image2x} 2x`" :alt="item.title" loading="lazy" />
@@ -55,13 +72,13 @@
     </section>
 
     <!-- TODO это баннеры с рекламой, пока ствим заглушку как в дизайне -->
-    <section class="full-block">
+    <!-- <section class="full-block">
       <a href="#" class="full-block__media">
         <picture>
           <img src="https://api.interior.ru/media/thumb/1650x930_5/lavrikova/Obl1920x1100_292.jpg" alt="">
         </picture>
       </a>
-    </section>
+    </section> -->
 
     <GridArticleSection :items="homeItems" :start="0" :end="8" />
 
@@ -117,13 +134,14 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import type { ArticleCollectionItem } from "../api/articles";
 import { getNewsUrl, useArticlesApi } from "../api/articles";
 import { useSpecProjectsApi } from "../api/specProjects";
 import { useGuideApi } from "../api/guide";
 import { Swiper, SwiperSlide } from "swiper/vue";
+import { Autoplay, Navigation, Pagination } from "swiper/modules";
 
 const appConfig = useAppConfig();
 
@@ -148,18 +166,60 @@ const { getArticlesHome, getCollectionItems, getNews } = useArticlesApi();
 const { getSpecProjects } = useSpecProjectsApi();
 const { getCurrentEvents } = useGuideApi();
 
-// это для hero
-const { data: hero } = await useAsyncData("home-hero", async () => {
-  const item = (await getCollectionItems("home_top")).data?.[0];
-  if (!item) return null;
+type HeroSlide = { id: number | string; title: string; url: string; image: string };
+type SlideMedia = { path?: string | null; rel_path?: string | null } | null | undefined;
 
-  const url = item.url || item.entity.url || "#";
+const heroThumb = useIsMobile() ? ([540, 540] as const) : ([1650, 930] as const);
 
-  return {
-    title: item.title || item.entity.title,
-    url: url.replace(/^https?:\/\/(www\.)?interior\.ru/, ""),
-    image: item.image?.path || getCoverMedia(item.entity),
+const toSitePath = (url: string) => url.replace(/^https?:\/\/(www\.)?interior\.ru/, "") || "/";
+
+const slideMedia = (media: SlideMedia) => {
+  const path = media?.path ?? "";
+  const rel = media?.rel_path || (path.startsWith(appConfig.apiHost) ? path.slice(appConfig.apiHost.length) : "");
+  const source = path || rel;
+  if (!source) return "";
+  if (isVideoUrl(source)) return path || `${appConfig.apiHost}${rel}`;
+  if (!rel.startsWith("/")) return path;
+  return encodeURI(getThumbUrl(rel, heroThumb[0], heroThumb[1]));
+};
+
+// закреп home_top целиком: каждый пин — слайд, картинка пина или cover_preview
+const { data: slides } = await useAsyncData(
+  "home-hero",
+  async () => {
+    const items = (await getCollectionItems("home_top")).data ?? [];
+    return items
+      .map((item): HeroSlide => {
+        const entity = item.entity as typeof item.entity & {
+          cover_preview?: SlideMedia;
+        };
+        const url = item.url || entity.url || "#";
+        return {
+          id: entity.id,
+          title: item.title || entity.title,
+          url: toSitePath(url),
+          image: slideMedia(item.image as SlideMedia) || slideMedia(entity.cover_preview) || getCoverMedia(entity),
+        };
+      })
+      .filter((slide) => slide.image);
+  },
+  { default: () => [] as HeroSlide[] },
+);
+
+const isHeroSlider = computed(() => slides.value.length > 1);
+const imagesReady = ref(false);
+
+onMounted(() => {
+  const enableRestImages = () => {
+    imagesReady.value = true;
   };
+
+  if (document.readyState === "complete") {
+    setTimeout(enableRestImages, 0);
+    return;
+  }
+
+  window.addEventListener("load", enableRestImages, { once: true });
 });
 
 // ответ тяжелый в каждой новости полный content, в payload оставляем только нужное
@@ -196,6 +256,45 @@ onMounted(async () => {
     console.error("api home articles", error);
   }
 });
+
+const heroSwiperConfig = {
+  modules: [Autoplay, Pagination, Navigation],
+  slidesPerView: 1,
+  loop: true,
+  speed: 600,
+  autoplay: {
+    delay: 6000,
+    disableOnInteraction: false,
+    pauseOnMouseEnter: true,
+  },
+  pagination: {
+    el: ".grettings__dots",
+    clickable: true,
+    type: "bullets" as const,
+    bulletClass: "grettings__dot",
+    bulletActiveClass: "is-active",
+  },
+  navigation: {
+    prevEl: ".grettings__prev",
+    nextEl: ".grettings__next",
+    disabledClass: "is-disabled",
+  },
+  breakpoints: {
+    0: {
+      autoplay: {
+        delay: 5000,
+        disableOnInteraction: false,
+      },
+    },
+    768: {
+      autoplay: {
+        delay: 6000,
+        disableOnInteraction: false,
+        pauseOnMouseEnter: true,
+      },
+    },
+  },
+};
 
 const swiperConfig = {
   slidesPerView: "auto" as const,
@@ -296,6 +395,10 @@ const swiperEventsConfig = {
     height: auto;
   }
 
+  @include responsive767 {
+    margin-bottom: 50px;
+  }
+
   &__invisLink {
     display: block;
     position: absolute;
@@ -361,19 +464,76 @@ const swiperEventsConfig = {
     }
   }
 
+  &__slider,
+  &__slide {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__slider {
+    overflow: hidden;
+    position: relative;
+
+    @include responsive1279 {
+      position: absolute;
+      inset: 0;
+    }
+
+    @include responsive767 {
+      overflow: visible;
+    }
+
+    :deep(.swiper-slide) {
+      height: 100%;
+    }
+
+    :deep(.swiper-pagination) {
+      top: 16px;
+      bottom: auto;
+      z-index: 9;
+    }
+
+    .grettings__link {
+      padding-bottom: 56px;
+      padding-right: 155px;
+
+      @include responsive767 {
+        padding: 10px 25px;
+      }
+
+      .text-default {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        text-decoration: none;
+        background-image: none;
+
+        @include responsive767 {
+          -webkit-line-clamp: 3;
+        }
+      }
+    }
+  }
+
+  &__slide {
+    position: relative;
+  }
+
   &__link {
     position: absolute;
     bottom: 0;
     left: 0;
     z-index: 2;
     padding: 16px;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.5) 100%);
-    backdrop-filter: blur(10px);
     font-size: 48px;
     line-height: 60px;
     color: $colorWhite;
     text-decoration: none;
     padding-left: 75px;
+    background: linear-gradient(0deg, rgba(255, 255, 255, 0.35) 0%, rgba(0, 0, 0, 0.2) 130%);
+    background-blend-mode: multiply;
+    backdrop-filter: blur(5px);
     @include hoverDefault($colorWhite, 3px, 0.6s);
     @include plusIconLeft;
 
@@ -402,6 +562,117 @@ const swiperEventsConfig = {
       font-size: 14px;
       line-height: 20px;
       padding: 10px 25px;
+    }
+  }
+
+  &__dots {
+    position: absolute;
+    bottom: 16px;
+    left: 0;
+    z-index: 99999;
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    padding: 0 40px;
+
+    @include responsive767 {
+      bottom: -45px;
+      padding: 16px;
+    }
+
+    :deep(.grettings__dot) {
+      cursor: pointer;
+      height: 24px;
+      width: 100%;
+      flex: 1;
+      position: relative;
+      display: block;
+
+      &.is-active::before {
+        background-color: $colorWhite;
+
+        @include responsive767 {
+          background-color: rgba(0, 0, 0, 1);
+        }
+      }
+
+      &:hover::before {
+        background-color: $colorWhite;
+        opacity: 0.76;
+
+        @include responsive767 {
+          background-color: rgba(0, 0, 0, 1);
+        }
+      }
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        margin-top: -1.5px;
+        left: 0;
+        transition: all 0.3s;
+        width: 100%;
+        height: 3px;
+        opacity: 1;
+        background-color: rgba(255, 255, 255, 0.5);
+
+        @include responsive767 {
+          background-color: rgba(0, 0, 0, 0.5);
+        }
+      }
+    }
+  }
+
+  &__prev {
+    right: 100px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg width='7' height='12' viewBox='0 0 7 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M6 0.75L0.75 6L6 11.25' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' stroke='white'/%3e%3c/svg%3e ");
+
+    @include responsive1279 {
+      right: 90px;
+    }
+  }
+
+  &__next {
+    right: 40px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg width='7' height='12' viewBox='0 0 7 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M0.75 0.75L6 6L0.75 11.25' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' stroke='white'/%3e%3c/svg%3e ");
+  }
+
+  &__prev,
+  &__next {
+    position: absolute;
+    bottom: 80px;
+    z-index: 99999;
+    width: 48px;
+    height: 48px;
+    backdrop-filter: blur(5px);
+    background-color: rgba(0, 0, 0, 0.2);
+    border: solid 1px $colorWhite;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    @include responsive1279 {
+      width: 38px;
+      height: 38px;
+      bottom: 60px;
+    }
+
+    @include responsive767 {
+      display: none;
+    }
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    &::after {
+      content: none;
     }
   }
 }
