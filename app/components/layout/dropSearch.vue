@@ -1,8 +1,67 @@
 <script lang="ts" setup>
-defineProps<{
+import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useAsyncData } from "nuxt/app";
+import { useArticlesApi } from "../../api/articles";
+import { useSearchApi } from "../../api/search";
+import { useTagsApi } from "../../api/tags";
+import { getArticleSection, getArticleUri } from "../../utils/article";
+
+const props = defineProps<{
     isOpenSearch: boolean;
     handleOpenSearch: (event: MouseEvent) => void;
 }>();
+
+const router = useRouter();
+const { getTopTags } = useTagsApi();
+const { getPopularArticles } = useArticlesApi();
+const { getSearchCount } = useSearchApi();
+
+const { data: tags } = useAsyncData("search-top-tags", () => getTopTags());
+const { data: popularArticles } = useAsyncData("search-popular-articles", () => getPopularArticles());
+
+const inputValue = ref("");
+const searchCount = ref(1);
+const searchedOnce = ref(false);
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+const articles = computed(() =>
+    (popularArticles.value ?? []).map((article) => ({
+        id: article.id,
+        title: article.title,
+        url: getArticleUri(article),
+        image: article.cover_preview?.path ?? "",
+        section: getArticleSection(article),
+    })),
+);
+
+const onInputChange = () => {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(async () => {
+        const q = inputValue.value.trim();
+        if (q.length <= 1) return;
+        try {
+            searchCount.value = await getSearchCount(q);
+            searchedOnce.value = true;
+        } catch {
+            searchCount.value = 1;
+        }
+    }, 1000);
+};
+
+const onClickClearInput = () => {
+    inputValue.value = "";
+    searchCount.value = 1;
+    searchedOnce.value = false;
+    if (searchTimer) clearTimeout(searchTimer);
+};
+
+const onSubmit = () => {
+    const q = inputValue.value.trim();
+    if (!q || !searchCount.value) return;
+    props.handleOpenSearch(new MouseEvent("click"));
+    router.push(`/search/${encodeURIComponent(q)}`);
+};
 </script>
 
 <template>
@@ -16,72 +75,44 @@ defineProps<{
             </NuxtLink>
         </div>
 
-        <div class="dropSearch__controls">
-            <input type="text" placeholder="Поиск">
-            <button class="btn">Найти</button>
-            <span class="dropSearch__result">По вашему запросу ничего не найдено, попробуйте изменить запрос</span>
-        </div>
+        <form class="dropSearch__controls" @submit.prevent="onSubmit">
+            <input v-model="inputValue" type="text" placeholder="Поиск" @input="onInputChange">
+            <button class="btn" type="submit" :disabled="!searchCount">Найти</button>
+
+            <span v-if="inputValue.length" class="btn-clear" @click="onClickClearInput"></span>
+
+            <span v-if="searchedOnce && !searchCount && inputValue.length" class="dropSearch__result">По вашему запросу
+                ничего не найдено, попробуйте изменить запрос</span>
+        </form>
 
         <div class="dropSearch__content">
             <div class="popular-tags">
                 <h2 class="caption caption--h2">популярные теги</h2>
 
                 <ul class="popular-tags__list">
-                    <li>
-                        <a href="#" class="btn">НОвостидизайна</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">интерьеры</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">Limited Edition</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">архитектура</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">Разговор</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">события</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">тенденции</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">Арт</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">имя</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">тренды</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">Марка</a>
-                    </li>
-                    <li>
-                        <a href="#" class="btn">дизайн</a>
+                    <li v-for="tag in tags ?? []" :key="tag.id">
+                        <NuxtLink :to="`/${tag.slug}`" class="btn">{{ tag.name }}</NuxtLink>
                     </li>
                 </ul>
             </div>
 
-            <div class="popular-articles">
+            <div v-if="articles.length" class="popular-articles">
                 <h2 class="caption caption--h2">популярные статьи</h2>
 
                 <div class="popular-articles__list">
-                    <div class="popular-articles__item" v-for="item in 4" :key="item">
-                        <a href="#" class="popular-articles__invisLink">
+                    <div v-for="article in articles" :key="article.id" class="popular-articles__item">
+                        <NuxtLink :to="article.url" class="popular-articles__invisLink">
                             <picture class="picture">
-                                <img src="https://api.interior.ru/media/thumb/976x549_5/images/es/tesla/tesla-robotaxi-reveal-12.jpg"
-                                    alt="" />
+                                <img v-if="article.image" :src="article.image" :alt="article.title" />
                             </picture>
-                        </a>
-                        <a href="#" class="popular-articles__link"><span class="text-default">Departo: новый бренд для
-                                глобальных кочевников</span></a>
-                        <div class="popular-articles__desc">
-                            <a href="#" class="popular-articles__cat"><span class="text-default">Дизайн</span></a>
-                            <!-- <span class="popular-articles__date">6 ноября, 2024</span> УБРАЛИ ПО ТРЕБОВАНИЮ ДАТУ-->
+                        </NuxtLink>
+                        <NuxtLink :to="article.url" class="popular-articles__link">
+                            <span class="text-default">{{ article.title }}</span>
+                        </NuxtLink>
+                        <div v-if="article.section" class="popular-articles__desc">
+                            <NuxtLink :to="article.section.url" class="popular-articles__cat">
+                                <span class="text-default">{{ article.section.title }}</span>
+                            </NuxtLink>
                         </div>
                     </div>
                 </div>
@@ -96,6 +127,7 @@ defineProps<{
     overflow: auto;
 
     &__controls {
+        position: relative;
         display: flex;
         flex-wrap: wrap;
         gap: 14px 32px;
@@ -161,10 +193,27 @@ defineProps<{
             margin-top: -10px;
         }
     }
+
+    .btn-clear {
+        cursor: pointer;
+        position: absolute;
+        top: 10px;
+        right: 150px;
+        width: 15px;
+        height: 15px;
+        opacity: 0.77;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath fill-rule='evenodd' clip-rule='evenodd' d='M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z' fill='%230F1729'%3e%3c/path%3e%3c/svg%3e");
+        background-position: center;
+        background-repeat: no-repeat;
+
+        @include responsive767 {
+            right: 0;
+        }
+    }
 }
 
 .popular-tags {
-    max-width: 946px;
+    max-width: 100%;
     width: 100%;
 
     &__list {
@@ -224,13 +273,39 @@ defineProps<{
         }
     }
 
-    &__invisLink {
+    &__item {
         width: 100%;
+
+        picture {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: none;
+            max-width: 100%;
+        }
+    }
+
+    &__invisLink {
+        position: relative;
+        width: 100%;
+        height: auto;
         z-index: 7;
         overflow: hidden;
         display: flex;
         flex-direction: column;
         text-decoration: none;
+        padding-top: calc(220 / 380 * 100%);
 
         &:hover {
             &+.popular-articles__link {

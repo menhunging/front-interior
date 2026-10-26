@@ -150,6 +150,23 @@ export const useArticlesApi = () => {
     return data;
   };
 
+  // тот же фильтр, что dropSearch в старом фронте: первые материалы главной с флагом популярности
+  const getPopularArticles = async (limit = 4) => {
+    const { data } = await api.get<{ data: ArticlePreview[] }>(
+      "/api/articles/article",
+      {
+        params: {
+          limit,
+          offset: 0,
+          "filter[in_home]": 1,
+          "filter[is_popular]": 1,
+        },
+      },
+    );
+
+    return data.data ?? [];
+  };
+
   const getCollectionItems = async (collection: string) => {
     const { data } = await api.get<{ data: CollectionPinItem[] }>(
       `/api/articles/collections/${collection}/items`,
@@ -209,6 +226,7 @@ export const useArticlesApi = () => {
     getNewsFeed,
     getCollectionItems,
     getMoreArticles,
+    getPopularArticles,
     getArticle,
     incrementArticleViews,
   };

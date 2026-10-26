@@ -58,6 +58,8 @@ type GridNode =
 const props = defineProps<{
   // каждая порция подгрузки — отдельный массив: последний элемент порции всегда на всю ширину
   batches: CategoryArticle[][];
+  // поиск: первый и последний идут в общей сетке, без карточек на всю ширину
+  plain?: boolean;
 }>();
 
 // big + small, half + half, small + big, half + half — элементы идут парами,
@@ -104,7 +106,7 @@ const nodes = computed<GridNode[]>(() =>
     const result: GridNode[] = [];
     let middle = batch;
 
-    if (batchIndex === 0 && middle[0]) {
+    if (!props.plain && batchIndex === 0 && middle[0]) {
       result.push(articleNode(middle[0], "0-first", "grid-article__item--full", "grid-article__item--first"));
       middle = middle.slice(1);
     }
@@ -120,7 +122,11 @@ const nodes = computed<GridNode[]>(() =>
     });
 
     if (last) {
-      result.push(articleNode(last, `${batchIndex}-last`, "grid-article__item--full", "grid-article__item--last"));
+      result.push(articleNode(
+        last,
+        `${batchIndex}-last`,
+        ...(props.plain ? [gridItemModifiers[middle.length % gridItemModifiers.length] ?? ""] : ["grid-article__item--full", "grid-article__item--last"]),
+      ));
     }
 
     return result;
